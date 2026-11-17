@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سرزمین منطق — درس امروز: مغالطه‌ها</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1026; --gold:#ffd166; --red:#ef476f; --green:#06d6a0;
+  --cyan:#4cc9f0; --purple:#b388ff; --ink:#f4f6ff; --dim:#9aa3c7;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:radial-gradient(1200px 700px at 50% -10%,#1b2350 0%,var(--bg) 55%,#070a18 100%);
+  font-family:'Vazirmatn',Tahoma,'Segoe UI',sans-serif;
+  color:var(--ink); display:flex; align-items:center; justify-content:center;
+  min-height:100vh; overflow:hidden;
+}
+#player{width:min(96vw, calc(96vh * 16 / 9)); position:relative}
+#stageWrap{position:relative; width:100%; aspect-ratio:16/9; border-radius:18px; overflow:hidden;
+  background:linear-gradient(180deg,#10173a 0%,#0b1026 60%,#080c1e 100%);
+  box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06) inset;}
+#stage{position:absolute; inset:0}
+#stars{position:absolute; inset:0; overflow:hidden; z-index:0}
+#stars i{position:absolute; width:3px; height:3px; border-radius:50%; background:#fff; opacity:.5;
+  animation:twinkle 4s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.15; transform:scale(.7)}50%{opacity:.8; transform:scale(1.2)}}
+#vignette{position:absolute; inset:0; z-index:40; pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,.55) 100%)}
+#flash{position:absolute; inset:0; z-index:45; background:#fff; opacity:0; pointer-events:none; transition:opacity .12s}
+.scene{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  opacity:0; visibility:hidden; z-index:1; padding:4% 6%; text-align:center}
+.scene.active{opacity:1; visibility:visible; z-index:5; transition:opacity .5s}
+.el{opacity:0; transition:opacity .55s ease, transform .7s cubic-bezier(.2,.9,.25,1.2); will-change:transform,opacity}
+.el.on{opacity:1}
+.el.pop{transform:scale(.2)}
+.el.pop.on{transform:scale(1)}
+.el.rise{transform:translateY(60px)}
+.el.rise.on{transform:translateY(0)}
+.el.fromR{transform:translateX(-90px)}
+.el.fromR.on{transform:translateX(0)}
+.el.fromL{transform:translateX(90px)}
+.el.fromL.on{transform:translateX(0)}
+.el.zoom{transform:scale(2.2); filter:blur(6px)}
+.el.zoom.on{transform:scale(1); filter:blur(0)}
+.el.spin{transform:rotate(-200deg) scale(.3)}
+.el.spin.on{transform:rotate(0) scale(1)}
+.float{animation:floaty 3.5s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.wobble{animation:wob 2.6s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.pulse{animation:pul 1.6s ease-in-out infinite}
+@keyframes pul{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.kicker{font-size:clamp(11px,1.4vw,18px); letter-spacing:.35em; color:var(--cyan); font-weight:700; margin-bottom:1.2vh}
+h1.mega{font-size:clamp(30px,6vw,84px); font-weight:900;
+  background:linear-gradient(120deg,var(--gold),#fff,var(--gold)); -webkit-background-clip:text; background-clip:text; color:transparent}
+h2.head{font-size:clamp(20px,3.4vw,46px); font-weight:900; margin-bottom:1.6vh}
+.sub{font-size:clamp(13px,1.8vw,24px); color:var(--dim); font-weight:400}
+.card{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:18px;
+  padding:2.2vh 2.4vw; backdrop-filter:blur(6px); box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.big{font-size:clamp(14px,2vw,27px); font-weight:700; line-height:1.9}
+.tag{display:inline-block; padding:.4em 1em; border-radius:999px; font-weight:900; font-size:clamp(11px,1.5vw,20px)}
+.t-gold{background:rgba(255,209,102,.15); color:var(--gold); border:1px solid rgba(255,209,102,.5)}
+.t-red{background:rgba(239,71,111,.15); color:var(--red); border:1px solid rgba(239,71,111,.5)}
+.t-green{background:rgba(6,214,160,.15); color:var(--green); border:1px solid rgba(6,214,160,.5)}
+.t-cyan{background:rgba(76,201,240,.15); color:var(--cyan); border:1px solid rgba(76,201,240,.5)}
+.t-purple{background:rgba(179,136,255,.15); color:var(--purple); border:1px solid rgba(179,136,255,.5)}
+.blocks{display:flex; flex-direction:column; gap:1.6vh; align-items:center}
+.premise{background:linear-gradient(135deg,rgba(76,201,240,.2),rgba(76,201,240,.05)); border:2px solid var(--cyan);
+  border-radius:14px; padding:1.2vh 2.4vw; font-weight:700; font-size:clamp(12px,1.7vw,22px)}
+.arrowDown{font-size:clamp(20px,3vw,40px); color:var(--gold); animation:bob 1s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+.conclusion{background:linear-gradient(135deg,rgba(255,209,102,.25),rgba(255,209,102,.05)); border:2px solid var(--gold);
+  border-radius:14px; padding:1.2vh 2.4vw; font-weight:900; font-size:clamp(13px,1.9vw,25px);
+  box-shadow:0 0 40px rgba(255,209,102,.25)}
+.apple{position:relative; width:clamp(90px,16vw,190px); height:clamp(90px,16vw,190px)}
+.apple .body{position:absolute; inset:0; background:radial-gradient(circle at 32% 28%, #ff8fa3, #ef476f 55%, #b2234a);
+  border-radius:48% 48% 50% 50%; box-shadow:inset -10px -16px 30px rgba(0,0,0,.3), 0 20px 50px rgba(0,0,0,.5)}
+.apple .leaf{position:absolute; top:-8%; right:30%; width:34%; height:22%; background:linear-gradient(120deg,#2ec4a0,#06d6a0);
+  border-radius:0 100% 0 100%; transform:rotate(-25deg)}
+.apple .stem{position:absolute; top:-12%; right:47%; width:6%; height:18%; background:#7a4a2b; border-radius:6px}
+.apple .shine{position:absolute; top:12%; right:18%; width:22%; height:16%; background:rgba(255,255,255,.55); border-radius:50%; filter:blur(4px); transition:opacity .5s}
+.apple .rot{position:absolute; inset:18%; border-radius:50%; background:radial-gradient(circle,#3a2415 20%,#1d1109 70%);
+  opacity:0; transform:scale(.3); transition:all .8s ease}
+.apple .fly{position:absolute; font-size:clamp(12px,2vw,24px); opacity:0; transition:opacity .5s}
+.apple.open .rot{opacity:1; transform:scale(1)}
+.apple.open .fly{opacity:1}
+.apple.open .shine{opacity:.15}
+.tree{display:flex; flex-direction:column; align-items:center; gap:.6vh}
+.branches{display:flex; gap:4vw; margin-top:1vh}
+.node{border-radius:16px; padding:1.6vh 2.2vw; font-weight:900; font-size:clamp(13px,2vw,26px); border:2px solid}
+.node.formal{border-color:var(--red); background:rgba(239,71,111,.12); color:#ffb3c4}
+.node.informal{border-color:var(--purple); background:rgba(179,136,255,.12); color:#dcc8ff}
+.node small{display:block; font-weight:400; font-size:.62em; color:var(--dim); margin-top:.4em}
+svg.link{width:min(60vw,520px); height:70px}
+svg.link path{stroke:var(--dim); stroke-width:2.5; fill:none; stroke-dasharray:600; stroke-dashoffset:600; transition:stroke-dashoffset 1.2s ease}
+svg.link.on path{stroke-dashoffset:0}
+.syl{display:flex; flex-direction:column; gap:1.1vh; align-items:center}
+.plank{background:linear-gradient(180deg,#8a5a33,#6b4223); border:2px solid #a9743f; color:#ffe9d2;
+  border-radius:10px; padding:1vh 2.2vw; font-weight:700; font-size:clamp(12px,1.7vw,22px); position:relative;
+  box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.plank.bad{background:linear-gradient(180deg,#7a1f38,#5c1428); border-color:var(--red)}
+.scene.cracked .plank.bad{animation:fall 1.4s ease-in forwards}
+@keyframes fall{20%{transform:translateY(0) rotate(0)}100%{transform:translateY(46vh) rotate(28deg); opacity:0}}
+.scene.cracked .crack{opacity:1; transform:scale(1)}
+.crack{position:absolute; font-size:clamp(60px,12vw,160px); opacity:0; transform:scale(3); transition:all .3s ease; z-index:9}
+.bigX{font-size:clamp(50px,9vw,120px); color:var(--red); text-shadow:0 0 40px rgba(239,71,111,.6)}
+.duo{display:flex; gap:5vw; align-items:center; justify-content:center}
+.persona{display:flex; flex-direction:column; align-items:center; gap:1vh}
+.avatar{width:clamp(64px,10vw,130px); height:clamp(64px,10vw,130px); border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:clamp(34px,5.5vw,72px); background:rgba(255,255,255,.08); border:3px solid rgba(255,255,255,.2)}
+.avatar.redhat{border-color:var(--red); box-shadow:0 0 34px rgba(239,71,111,.4)}
+.bubble{position:relative; background:rgba(255,255,255,.1); border:1.5px solid rgba(255,255,255,.25); border-radius:16px;
+  padding:1.1vh 1.6vw; font-size:clamp(11px,1.5vw,19px); max-width:clamp(150px,22vw,320px); font-weight:700}
+.bubble.mean{border-color:var(--red); background:rgba(239,71,111,.12)}
+.appleRow{display:flex; gap:1vw; margin-top:2vh}
+.miniApple{font-size:clamp(26px,4vw,54px); animation:floaty 3s ease-in-out infinite}
+.miniApple span{display:block; font-size:.42em; color:var(--red); font-weight:900; text-align:center}
+.stamp{border:4px solid var(--red); color:var(--red); border-radius:12px; padding:.4em 1em; font-weight:900;
+  font-size:clamp(15px,2.4vw,32px); transform:rotate(-8deg); background:rgba(239,71,111,.08)}
+.loopBox{position:relative; width:clamp(160px,26vw,320px); height:clamp(160px,26vw,320px)}
+.loopBox .circle{position:absolute; inset:0; border:5px dashed var(--gold); border-radius:50%; animation:spin 7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loopBox .centerT{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:clamp(18px,2.6vw,34px); font-weight:900; color:var(--gold)}
+.masks{display:flex; gap:3vw; align-items:center; margin-top:1vh}
+.maskCard{background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.18); border-radius:16px;
+  padding:1.4vh 2vw; font-weight:700; font-size:clamp(12px,1.6vw,21px)}
+.figure{position:relative; display:flex; flex-direction:column; align-items:center}
+.labelFly{position:absolute; top:8%; white-space:nowrap; font-size:clamp(14px,2.2vw,30px); font-weight:900;
+  padding:.5em 1.1em; border-radius:999px; box-shadow:0 10px 34px rgba(0,0,0,.45)}
+.labelFly.good{right:calc(100% + 1vw); background:rgba(6,214,160,.15); border:2px solid var(--green); color:#8ff2d9}
+.labelFly.evil{left:calc(100% + 1vw); background:rgba(239,71,111,.15); border:2px solid var(--red); color:#ffb3c4}
+.meaningRow{display:flex; gap:3vw; margin-top:3vh; flex-wrap:wrap; justify-content:center}
+.meaningCard{border-radius:18px; padding:1.8vh 2vw; border:2px solid; min-width:clamp(180px,24vw,330px)}
+.meaningCard.cog{border-color:var(--cyan); background:rgba(76,201,240,.08)}
+.meaningCard.emo{border-color:var(--gold); background:rgba(255,209,102,.08)}
+.meaningCard h3{font-size:clamp(14px,1.9vw,24px); margin-bottom:.5vh}
+.meaningCard p{font-size:clamp(11px,1.5vw,18px); color:var(--dim); line-height:1.8}
+.mapRow{display:flex; gap:1.6vw; flex-wrap:wrap; justify-content:center; margin-top:1.5vh}
+.mapNode{width:clamp(72px,10vw,140px); background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.18);
+  border-radius:14px; padding:1.2vh .6vw; font-size:clamp(9px,1.2vw,15px); font-weight:700}
+.mapNode .ic{font-size:clamp(20px,3vw,40px); display:block; margin-bottom:.4vh}
+.badge{background:linear-gradient(120deg,var(--gold),#ff9e57); color:#231a00; font-weight:900;
+  font-size:clamp(18px,3vw,42px); padding:.5em 1.4em; border-radius:999px; box-shadow:0 0 60px rgba(255,209,102,.5)}
+#confetti{position:absolute; inset:0; overflow:hidden; z-index:8; pointer-events:none}
+#confetti i{position:absolute; top:-4%; width:9px; height:14px; border-radius:2px; animation:drop linear infinite}
+@keyframes drop{to{transform:translateY(110vh) rotate(720deg)}}
+#subs{position:absolute; bottom:9%; left:50%; transform:translateX(-50%); z-index:30; width:80%; text-align:center; pointer-events:none}
+#subs .line{display:inline-block; background:rgba(5,8,20,.72); border:1px solid rgba(255,255,255,.12);
+  padding:.55em 1.3em; border-radius:12px; font-size:clamp(12px,1.9vw,26px); font-weight:700; line-height:1.9;
+  opacity:0; transition:opacity .3s; backdrop-filter:blur(4px)}
+#subs .line.show{opacity:1}
+#chapBadge{position:absolute; top:5%; right:4%; z-index:30; font-size:clamp(10px,1.4vw,18px); color:var(--dim);
+  background:rgba(5,8,20,.6); border:1px solid rgba(255,255,255,.12); padding:.4em 1em; border-radius:999px; opacity:0; transition:opacity .4s}
+#chapBadge.show{opacity:1}
+#poster{position:absolute; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2.5vh; background:radial-gradient(900px 500px at 50% 30%, #1c2657, #0a0e22 75%); cursor:pointer; transition:opacity .6s}
+#poster.hide{opacity:0; pointer-events:none}
+#poster .playBtn{width:clamp(80px,12vw,130px); height:clamp(80px,12vw,130px); border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),#ff9e57); display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 70px rgba(255,209,102,.55); animation:pul 1.8s ease-in-out infinite}
+#poster .playBtn::after{content:''; border-style:solid; border-width:clamp(14px,2vw,24px) 0 clamp(14px,2vw,24px) clamp(24px,3.4vw,40px);
+  border-color:transparent transparent transparent #231a00; margin-right:.35em}
+#poster .hint{font-size:clamp(11px,1.5vw,19px); color:var(--dim)}
+#endCard{position:absolute; inset:0; z-index:55; display:none; flex-direction:column; align-items:center; justify-content:center; gap:2.5vh;
+  background:rgba(7,10,24,.88); backdrop-filter:blur(8px)}
+#endCard.show{display:flex}
+#endCard .replay{cursor:pointer; width:clamp(70px,10vw,110px); height:clamp(70px,10vw,110px); border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),#118ab2); display:flex; align-items:center; justify-content:center;
+  font-size:clamp(28px,4.4vw,52px); box-shadow:0 0 60px rgba(76,201,240,.5); animation:pul 1.8s ease-in-out infinite}
+#bar{display:flex; align-items:center; gap:1vw; margin-top:14px; padding:0 4px}
+#play{cursor:pointer; width:clamp(38px,4.4vw,52px); height:clamp(38px,4.4vw,52px); border-radius:50%; border:none; flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),#ff9e57); color:#231a00; font-size:clamp(15px,1.8vw,22px);
+  display:flex; align-items:center; justify-content:center; box-shadow:0 6px 20px rgba(255,209,102,.35)}
+#progress{flex:1; height:10px; border-radius:99px; background:rgba(255,255,255,.12); position:relative; cursor:pointer}
+#progFill{position:absolute; top:0; right:0; height:100%; width:0%; border-radius:99px;
+  background:linear-gradient(90deg,var(--gold),#ff9e57)}
+#chapters{position:absolute; inset:0}
+#chapters .ch{position:absolute; top:0; height:100%; border-left:2px solid rgba(10,14,32,.9); cursor:pointer}
+#chapters .ch:hover{background:rgba(255,255,255,.18)}
+#time{font-size:clamp(10px,1.3vw,15px); color:var(--dim); font-variant-numeric:tabular-nums; direction:ltr; flex-shrink:0}
+#fs,#mute{cursor:pointer; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:var(--ink);
+  border-radius:10px; padding:.45em .7em; font-size:clamp(11px,1.4vw,17px); flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="player">
+  <div id="stageWrap">
+    <div id="stage">
+
+      <div id="stars"></div>
+
+      <!-- SCENE 1 : INTRO (0-15s) -->
+      <section class="scene" id="s1">
+        <div class="el zoom kicker" data-t="600">درس امروزِ منطق</div>
+        <h1 class="el zoom mega" data-t="1400">سرزمینِ منطق 🧭</h1>
+        <div class="el rise sub" data-t="3200" style="margin-top:1.5vh">سفری به دنیای «مغالطه‌ها» — حرف‌هایی که خوب به نظر می‌رسند… ولی نیستند!</div>
+        <div class="el pop float" data-t="5200" style="font-size:clamp(40px,7vw,90px); margin-top:2vh">🔍 ✨ 🎭</div>
+      </section>
+
+      <!-- SCENE 2 : ARGUMENT (15-40s) -->
+      <section class="scene" id="s2">
+        <h2 class="el rise head" data-t="400">استدلال یعنی چی؟ 🌉</h2>
+        <div class="blocks">
+          <div class="el fromR premise" data-t="2200">«برگ‌های این درخت سبز است» 🍃</div>
+          <div class="el fromR premise" data-t="4600">«این درخت در تابستان است» ☀️</div>
+          <div class="el pop arrowDown" data-t="7000">⬇</div>
+          <div class="el pop conclusion" data-t="9000">نتیجه: «بهار دارد تمام می‌شود!» 🌸</div>
+        </div>
+        <div class="el rise sub" data-t="12500" style="margin-top:2.5vh">مثل یک پُل: تخته‌ها = مقدمه‌ها &nbsp;•&nbsp; سمتِ دیگرِ رودخانه = نتیجه</div>
+      </section>
+
+      <!-- SCENE 3 : FALLACY APPLE (40-70s) -->
+      <section class="scene" id="s3">
+        <h2 class="el rise head" data-t="400">مغالطه (Fallacy) چیست؟</h2>
+        <div class="apple float" id="apple3">
+          <div class="body"></div><div class="stem"></div><div class="leaf"></div><div class="shine"></div>
+          <div class="rot"></div>
+          <div class="fly" style="top:8%; left:6%">🪰</div>
+          <div class="fly" style="bottom:14%; right:8%">🪰</div>
+        </div>
+        <div class="el rise card big" data-t="9500" style="margin-top:2.5vh; max-width:min(86%,760px)">
+          استدلالی که <span class="tag t-green">ظاهراً خوب</span> به نظر می‌رسد،
+          اما واقعاً <span class="tag t-red">ضعیف</span> است!
+        </div>
+        <div class="el rise sub" data-t="17000" style="margin-top:1.8vh">مثل سیبی که از بیرون آبدار و براق است… ولی از داخل خراب! 🍎🪰</div>
+      </section>
+
+      <!-- SCENE 4 : TWO FAMILIES (70-105s) -->
+      <section class="scene" id="s4">
+        <h2 class="el rise head" data-t="400">مغالطه‌ها دو خانوادهٔ بزرگ دارند 👨‍👩‍👧‍👦</h2>
+        <div class="tree">
+          <div class="el pop node" data-t="2500" style="border-color:var(--gold); background:rgba(255,209,102,.1); color:var(--gold)">مغالطه‌ها</div>
+          <svg class="link el" data-t="5000" viewBox="0 0 520 70">
+            <path d="M260 0 C 260 35, 130 30, 130 70 M260 0 C 260 35, 390 30, 390 70"/>
+          </svg>
+          <div class="branches">
+            <div class="el fromR node formal" data-t="7500">مغالطهٔ صوری<small>Formal — خرابیِ «شکل» و ساختار 🔧</small></div>
+            <div class="el fromL node informal" data-t="10000">مغالطهٔ غیررسمی<small>Informal — خرابیِ «محتوا» 🎈</small></div>
+          </div>
+        </div>
+        <div class="el rise sub" data-t="15000" style="margin-top:2.5vh">یکی پلش از اول کج ساخته شده 🔧 — یکی تخته‌هایش چوبِ گندیده است 🍎</div>
+      </section>
+
+      <!-- SCENE 5 : FORMAL (105-135s) -->
+      <section class="scene" id="s5">
+        <h2 class="el rise head" data-t="400">مغالطهٔ صوری: پلِ شکسته! ⚡</h2>
+        <div class="syl">
+          <div class="el fromR plank" data-t="2500">۱) همهٔ گربه‌ها حیوان هستند 🐱</div>
+          <div class="el fromR plank" data-t="5200">۲) سگ هم حیوان است 🐶</div>
+          <div class="el fromR plank bad" data-t="8000">۳) پس سگ یک گربه است! 😹</div>
+        </div>
+        <div class="el pop bigX" data-t="13500" style="margin-top:2vh">✗</div>
+        <div class="el rise card big" data-t="16500" style="margin-top:1.5vh; max-width:min(86%,720px)">
+          حتی اگر همهٔ حرف‌ها <span class="tag t-green">درست</span> باشند،
+          <span class="tag t-red">ترتیب و شکلِ</span> استدلال خراب است — پس نتیجه می‌افتد! 💥
+        </div>
+        <div class="crack">💢</div>
+      </section>
+
+      <!-- SCENE 6 : RELEVANCE (135-165s) -->
+      <section class="scene" id="s6">
+        <h2 class="el rise head" data-t="400">غیررسمی ۱: خطای «ربط» 🎈</h2>
+        <div class="duo">
+          <div class="persona">
+            <div class="el pop avatar redhat float" data-t="2500">👦🧢</div>
+            <div class="el rise bubble" data-t="5000">«فکر می‌کنم این بازی قشنگ‌تر است، چون…»</div>
+          </div>
+          <div class="persona">
+            <div class="el pop avatar wobble" data-t="7500">🧒</div>
+            <div class="el rise bubble mean" data-t="10000">«کلاهِ تو قرمز است، پس حرفت غلط است!»</div>
+          </div>
+        </div>
+        <div class="el rise card big" data-t="14000" style="margin-top:2.5vh; max-width:min(88%,740px)">
+          به حرفِ او حمله نکردند… به <span class="tag t-red">خودِ او</span> حمله کردند!
+          <br><span class="tag t-cyan">مقدمه‌ها اصلاً به نتیجه ربطی ندارند</span>
+        </div>
+      </section>
+
+      <!-- SCENE 7 : WEAK INDUCTION (165-190s) -->
+      <section class="scene" id="s7">
+        <h2 class="el rise head" data-t="400">غیررسمی ۲: استقرای ضعیف 🍏</h2>
+        <div class="el pop float" data-t="2500" style="font-size:clamp(50px,8vw,110px)">🍏🦷</div>
+        <div class="el rise big" data-t="5500" style="margin-top:1.5vh">«این سیب ترش بود… پس <u>همهٔ</u> سیب‌های دنیا ترش‌اند!»</div>
+        <div class="appleRow" id="appleRow7"></div>
+        <div class="el pop stamp" data-t="14000" style="margin-top:2.5vh">فقط ۱ نمونه دیدی! ⚡ شتاب‌زده</div>
+        <div class="el rise sub" data-t="18000" style="margin-top:1.5vh">مقدمه‌ها حمایتِ خیلی ضعیفی برای نتیجه می‌دهند</div>
+      </section>
+
+      <!-- SCENE 8 : PRESUMPTION + AMBIGUITY (190-215s) -->
+      <section class="scene" id="s8">
+        <h2 class="el rise head" data-t="400">غیررسمی ۳: فرض‌انگاری + ابهام 🎭</h2>
+        <div class="duo" style="margin-top:1vh">
+          <div class="persona">
+            <div class="loopBox el pop" data-t="2500">
+              <div class="circle"></div>
+              <div class="centerT">«چون که<br>چون!» 🔁</div>
+            </div>
+            <div class="el rise sub" data-t="6000" style="margin-top:1vh">فرض‌انگاری: از اول فرضِ غلط می‌گیرد</div>
+          </div>
+          <div class="persona">
+            <div class="masks">
+              <div class="el spin maskCard" data-t="9000">🦌 «شاخ» = شاخِ گوزن</div>
+              <div class="el spin maskCard" data-t="11500">😂 «شاخ» = ادعای دروغین</div>
+            </div>
+            <div class="el rise sub" data-t="15000" style="margin-top:1vh">ابهام: یک واژه، دو معنی — وسطِ حرف عوض می‌شود!</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 9 : COGNITIVE vs EMOTIVE (215-245s) -->
+      <section class="scene" id="s9">
+        <h2 class="el rise head" data-t="400">یک آدم، دو اسم! 🕊️💥</h2>
+        <div class="figure">
+          <div class="el pop avatar float" data-t="2500" style="font-size:clamp(40px,6vw,84px); width:clamp(80px,12vw,150px); height:clamp(80px,12vw,150px)">🧑‍🚒</div>
+          <div class="el fromR labelFly good" data-t="5500">«آزادی‌خواه» 🕊️</div>
+          <div class="el fromL labelFly evil" data-t="8500">«تروریست» 💥</div>
+        </div>
+        <div class="meaningRow">
+          <div class="el rise meaningCard cog" data-t="13000">
+            <h3>🧠 معنای شناختی</h3>
+            <p>محتوای اطلاعاتیِ گزاره — چیزی که به صادق یا کاذب بودن کمک می‌کند (خودِ «اطلاعات»)</p>
+          </div>
+          <div class="el rise meaningCard emo" data-t="17000">
+            <h3>💗 معنای احساسی</h3>
+            <p>بارِ عاطفیِ واژه — مثبت یا منفی. هر دو اسم به یک شخص اشاره می‌کنند، ولی حسِ کاملاً متفاوتی می‌دهند!</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCENE 10 : RECAP (245-275s) -->
+      <section class="scene" id="s10">
+        <h2 class="el rise head" data-t="400">نقشهٔ گنجِ امروز 🗺️</h2>
+        <div class="mapRow">
+          <div class="el pop mapNode" data-t="2000"><span class="ic">🌉</span>استدلال = مقدمه ← نتیجه</div>
+          <div class="el pop mapNode" data-t="4000"><span class="ic">🍎</span>مغالطه = ظاهر خوب، ته‌مایه ضعیف</div>
+          <div class="el pop mapNode" data-t="6000"><span class="ic">🔧</span>صوری = خرابیِ شکل</div>
+          <div class="el pop mapNode" data-t="8000"><span class="ic">🎈</span>ربط = حمله به آدم، نه حرف</div>
+          <div class="el pop mapNode" data-t="10000"><span class="ic">🍏</span>استقرای ضعیف = شتاب‌زده</div>
+          <div class="el pop mapNode" data-t="12000"><span class="ic">🎭</span>فرض غلط + دو معنایی</div>
+          <div class="el pop mapNode" data-t="14000"><span class="ic">🧠💗</span>شناختی = اطلاعات • احساسی = حس</div>
+        </div>
+        <div class="el pop badge" data-t="18000" style="margin-top:3vh">حالا تو یک «مغالطه‌شکار» هستی! 🏆</div>
+      </section>
+
+      <div id="confetti"></div>
+      <div id="flash"></div>
+      <div id="vignette"></div>
+      <div id="subs"><span class="line" id="subLine"></span></div>
+      <div id="chapBadge"></div>
+
+      <div id="endCard">
+        <div style="font-size:clamp(26px,4vw,56px)">🎉</div>
+        <div class="big" style="font-size:clamp(16px,2.4vw,32px)">آفرین! کلِ درس را دیدی.</div>
+        <div class="sub">می‌خواهی دوباره ببینی؟</div>
+        <div class="replay" id="replayBtn">↺</div>
+      </div>
+
+      <div id="poster">
+        <div class="playBtn" id="posterBtn"></div>
+        <h1 class="mega" style="font-size:clamp(24px,4.5vw,60px)">سرزمینِ منطق 🧭</h1>
+        <div class="hint">درس امروز: مغالطه‌ها • ۴:۳۵ دقیقه • یک کلیک = پخش کامل با صدا</div>
+      </div>
+    </div>
+
+    <div id="bar">
+      <button id="play" title="پخش / توقف">▶</button>
+      <div id="progress">
+        <div id="progFill"></div>
+        <div id="chapters"></div>
+      </div>
+      <span id="time">0:00 / 4:35</span>
+      <button id="mute" title="صدا">🔊</button>
+      <button id="fs" title="تمام‌صفحه">⛶</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= TIMELINE DATA ================= */
+var TOTAL = 275000;
+var SCENES = [
+  {id:'s1',  start:0,      end:15000,  name:'پرده آغاز'},
+  {id:'s2',  start:15000,  end:40000,  name:'استدلال چیست؟'},
+  {id:'s3',  start:40000,  end:70000,  name:'مغالطه = سیب گندیده'},
+  {id:'s4',  start:70000,  end:105000, name:'دو خانواده'},
+  {id:'s5',  start:105000, end:135000, name:'مغالطهٔ صوری'},
+  {id:'s6',  start:135000, end:165000, name:'خطای ربط'},
+  {id:'s7',  start:165000, end:190000, name:'استقرای ضعیف'},
+  {id:'s8',  start:190000, end:215000, name:'فرض + ابهام'},
+  {id:'s9',  start:215000, end:245000, name:'معنای شناختی و احساسی'},
+  {id:'s10', start:245000, end:275000, name:'جمع‌بندی'}
+];
+var SUBS = [
+  {t:800,   d:4200,  x:'امروز می‌خواهم یک رازِ قشنگ به تو بگویم…'},
+  {t:5200,  d:4600,  x:'بعضی حرف‌ها خیلی قشنگ به نظر می‌رسند… ولی ته‌مایه‌شان خراب است!'},
+  {t:10400, d:4200,  x:'این‌ها را «مغالطه» می‌نامند. بیا با هم پیدایشان کنیم!'},
+  {t:15400, d:4600,  x:'اول ببینیم «استدلال» یعنی چه…'},
+  {t:20400, d:5200,  x:'استدلال یعنی از چند حرف، به یک حرفِ تازه برسیم.'},
+  {t:26000, d:5000,  x:'مثل یک پُل: تخته‌ها مقدمه‌هایند، سمتِ دیگرِ رودخانه نتیجه است.'},
+  {t:31500, d:5000,  x:'تخته‌ها را درست بچینیم، به نتیجه می‌رسیم!'},
+  {t:40500, d:5000,  x:'حالا رازِ بزرگ: بعضی پل‌ها ظاهرِ خوبی دارند…'},
+  {t:46000, d:5000,  x:'ولی وقتی نزدیک شوی، می‌بینی ته‌مایه‌شان خراب است!'},
+  {t:51500, d:5600,  x:'مغالطه یعنی: استدلالی که ظاهراً خوب به نظر می‌رسد، اما واقعاً ضعیف است.'},
+  {t:58000, d:5000,  x:'مثل سیبی که از بیرون آبدار و براق است…'},
+  {t:63500, d:5500,  x:'ولی از داخل خراب است! مواظب باش، گازِ اول فریبت نمی‌دهد.'},
+  {t:70500, d:5000,  x:'مغالطه‌ها دو خانوادهٔ بزرگ دارند.'},
+  {t:76000, d:5500,  x:'خانوادهٔ اول: مغالطهٔ صوری — یعنی «شکل» و ساختارِ پل خراب است.'},
+  {t:82000, d:5500,  x:'خانوادهٔ دوم: مغالطهٔ غیررسمی — یعنی «محتوا»، خودِ حرف‌ها، مشکل دارند.'},
+  {t:88000, d:5600,  x:'غیررسمی سه دسته دارد: ربط، استقرای ضعیف، و فرض‌انگاری و ابهام.'},
+  {t:94500, d:5000,  x:'اول برویم سراغ پلِ شکسته: مغالطهٔ صوری!'},
+  {t:100500,d:6000,  x:'این پل دو تا حرفِ درست دارد و یک نتیجهٔ خیلی عجیب! نگاه کن…'},
+  {t:107500,d:4800,  x:'ببین این پل را: همهٔ گربه‌ها حیوان هستند. تا اینجا درست!'},
+  {t:112500,d:4800,  x:'سگ هم حیوان است. این هم درست!'},
+  {t:117500,d:5200,  x:'پس… سگ یک گربه است؟! نه‌نه‌نه! چه اتفاقی افتاد؟'},
+  {t:123000,d:5500,  x:'مشکل از شکلِ پل است، نه از تخته‌ها! ترتیبِ حرف‌ها غلط بود.'},
+  {t:129000,d:5000,  x:'حتی با مقدمه‌های درست، نتیجهٔ غلط می‌افتد. این است مغالطهٔ صوری!'},
+  {t:135500,d:5000,  x:'حالا خانوادهٔ دوم. دستهٔ اول: خطای ربط!'},
+  {t:141000,d:5200,  x:'این بچه یک حرف دارد که می‌خواهد بگوید…'},
+  {t:146500,d:5200,  x:'ولی دوستش گوش نمی‌دهد! می‌گوید: کلاهت قرمز است، پس حرفت غلط است!'},
+  {t:152500,d:5500,  x:'به حرفش حمله نکرد، به خودش حمله کرد! این اصلاً ربطی به حرف ندارد.'},
+  {t:158500,d:5000,  x:'مقدمه‌ها به نتیجه مربوط نیستند. یک حبابِ بی‌ربط!'},
+  {t:165500,d:4800,  x:'دستهٔ دوم: استقرای ضعیف. یعنی عجله کردن!'},
+  {t:170500,d:5200,  x:'یک سیب ترش خوردی و گفتی: همهٔ سیب‌های دنیا ترش‌اند!'},
+  {t:176000,d:5200,  x:'با فقط یک نمونه، دربارهٔ همه قضاوت کردی. خیلی شتاب‌زده بود!'},
+  {t:181500,d:5000,  x:'مقدمه‌ها حمایتِ خیلی ضعیفی برای نتیجه می‌دهند.'},
+  {t:190500,d:5000,  x:'دستهٔ سوم: فرض‌انگاری و ابهام.'},
+  {t:195500,d:5200,  x:'فرض‌انگاری یعنی از اول فرضِ غلط بگیری: «چون که چون!»'},
+  {t:201000,d:5000,  x:'مثل چرخ‌وفلکی که هیچ‌وقت تمام نمی‌شود!'},
+  {t:206500,d:5200,  x:'ابهام یعنی یک کلمه دو تا معنی داشته باشد.'},
+  {t:212000,d:3200,  x:'وسطِ حرف، معنی عوض می‌شود و حرف‌ها قاطی می‌شوند!'},
+  {t:215500,d:5200,  x:'و آخرین درس: یک آدم، دو تا اسم!'},
+  {t:221000,d:5200,  x:'به یک نفر می‌گویند «آزادی‌خواه» — حسِ قشنگی می‌دهد 🕊️'},
+  {t:226500,d:5200,  x:'به همان نفر می‌گویند «تروریست» — حسِ بدی می‌دهد 💥'},
+  {t:232000,d:5500,  x:'معنای شناختی یعنی خودِ اطلاعات: گزاره صادق است یا کاذب؟'},
+  {t:238000,d:5500,  x:'معنای احساسی یعنی بارِ عاطفیِ واژه: مثبت یا منفی؟'},
+  {t:245500,d:5000,  x:'خب! کلِ نقشهٔ امروز را با هم جمع کنیم…'},
+  {t:251000,d:5500,  x:'استدلال مثل پل است. مغالطه یعنی ظاهرِ خوب ولی ته‌مایهٔ ضعیف.'},
+  {t:257000,d:5500,  x:'صوری: شکل خراب. غیررسمی: ربط، استقرای ضعیف، فرض و ابهام.'},
+  {t:263000,d:5500,  x:'و یادت باشد: معنای شناختی = اطلاعات، معنای احساسی = حس.'},
+  {t:269000,d:5500,  x:'حالا تو یک مغالطه‌شکار هستی! هر جا دیدی، بگو: آها! گرفمت! 🏆'}
+];
+var CUES = [
+  {t:600,  f:'whoosh'}, {t:1400, f:'shimmer'}, {t:3200, f:'pop'}, {t:5200, f:'chime'},
+  {t:15400,f:'whoosh'}, {t:17200,f:'tick'}, {t:19600,f:'tick'}, {t:22000,f:'whoosh'}, {t:24000,f:'ding'}, {t:27500,f:'chime'},
+  {t:40500,f:'whoosh'}, {t:47500,f:'spin'}, {t:51500,f:'sad'}, {t:58000,f:'pop'}, {t:63000,f:'buzz'},
+  {t:70500,f:'whoosh'}, {t:77500,f:'ding'}, {t:80000,f:'ding'}, {t:85000,f:'chime'},
+  {t:105500,f:'whoosh'}, {t:107500,f:'tick'}, {t:110200,f:'tick'}, {t:113000,f:'pop'}, {t:118500,f:'thunder'}, {t:121500,f:'sad'}, {t:122500,f:'crack'},
+  {t:135500,f:'whoosh'}, {t:137500,f:'pop'}, {t:140000,f:'pop'}, {t:142500,f:'pop'}, {t:145000,f:'buzz'}, {t:149000,f:'chime'},
+  {t:165500,f:'whoosh'}, {t:167500,f:'crunch'}, {t:170500,f:'pop'}, {t:173000,f:'crowd'}, {t:179000,f:'stamp'},
+  {t:190500,f:'whoosh'}, {t:192500,f:'spin'}, {t:199000,f:'jingle'}, {t:201500,f:'jingle'}, {t:205000,f:'chime'},
+  {t:215500,f:'whoosh'}, {t:217500,f:'pop'}, {t:220500,f:'chime'}, {t:223500,f:'buzz'}, {t:228000,f:'ding'}, {t:232000,f:'chime'},
+  {t:245500,f:'whoosh'}, {t:263000,f:'fanfare'}
+];
+
+/* ================= AUDIO ENGINE (Web Audio, no files) ================= */
+var AC=null, master=null, musicGain=null, sfxGain=null, muted=false, step=0, nextNoteTime=0;
+var TEMPO=0.42;
+var PROG=[
+  {b:45, ch:[57,60,64]}, {b:41, ch:[53,57,60]}, {b:36, ch:[52,55,60]}, {b:43, ch:[55,59,62]}
+];
+function mtof(m){ return 440*Math.pow(2,(m-69)/12); }
+function initAudio(){
+  if(AC) return;
+  AC = new (window.AudioContext||window.webkitAudioContext)();
+  master = AC.createGain(); master.gain.value=.9; master.connect(AC.destination);
+  musicGain = AC.createGain(); musicGain.gain.value=.15; musicGain.connect(master);
+  sfxGain = AC.createGain(); sfxGain.gain.value=.5; sfxGain.connect(master);
+  nextNoteTime = AC.currentTime + .1;
+  setInterval(scheduleMusic, 120);
+}
+function scheduleMusic(){
+  if(!AC || !playing) return;
+  while(nextNoteTime < AC.currentTime + .6){
+    playMusicStep(step, nextNoteTime);
+    nextNoteTime += TEMPO; step++;
+  }
+}
+function playMusicStep(s, tm){
+  var bar = PROG[Math.floor(s/8)%PROG.length], beat = s%8, i;
+  if(beat%4===0) note(mtof(bar.b-12), tm, .9, 'sine', .5, musicGain);
+  if(beat%2===0){ for(i=0;i<3;i++) note(mtof(bar.ch[i]), tm, 1.6, 'triangle', .14+(i===0?.07:0), musicGain); }
+  if(beat===2||beat===6) note(mtof(bar.ch[(Math.floor(s/2))%3]+12), tm, .35, 'sine', .2, musicGain);
+  if(beat===0) hat(tm, .035, 3000);
+}
+function note(f,tm,d,type,vol,dest){
+  var o=AC.createOscillator(), g=AC.createGain();
+  o.type=type; o.frequency.value=f;
+  g.gain.setValueAtTime(0,tm); g.gain.linearRampToValueAtTime(vol,tm+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,tm+d);
+  o.connect(g); g.connect(dest||sfxGain); o.start(tm); o.stop(tm+d+.05);
+}
+function noiseBuf(dur){
+  var b=AC.createBuffer(1, Math.floor(AC.sampleRate*dur), AC.sampleRate), ch=b.getChannelData(0), i;
+  for(i=0;i<ch.length;i++) ch[i]=Math.random()*2-1; return b;
+}
+function noise(tm,dur,fType,fStart,fEnd,vol,dest){
+  var src=AC.createBufferSource(); src.buffer=noiseBuf(dur);
+  var fl=AC.createBiquadFilter(); fl.type=fType; fl.frequency.setValueAtTime(fStart,tm);
+  if(fEnd) fl.frequency.exponentialRampToValueAtTime(fEnd,tm+dur);
+  var g=AC.createGain(); g.gain.setValueAtTime(vol,tm); g.gain.exponentialRampToValueAtTime(.0001,tm+dur);
+  src.connect(fl); fl.connect(g); g.connect(dest||sfxGain); src.start(tm); src.stop(tm+dur);
+}
+function hat(tm,vol,f){ noise(tm,.06,'highpass',f,null,vol,musicGain); }
+var SFX = {
+  whoosh: function(){ var t=AC.currentTime; noise(t,.5,'bandpass',300,3000,.5); },
+  pop: function(){ var t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(600,t); o.frequency.exponentialRampToValueAtTime(120,t+.12);
+    g.gain.setValueAtTime(.5,t); g.gain.exponentialRampToValueAtTime(.001,t+.15);
+    o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t+.2); },
+  ding: function(){ var t=AC.currentTime; note(880,t,.6,'sine',.4); note(1320,t,.5,'sine',.15); },
+  chime: function(){ var t=AC.currentTime; note(523,t,.5,'sine',.25); note(659,t+.09,.5,'sine',.25); note(784,t+.18,.5,'sine',.25); },
+  buzz: function(){ var t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain();
+    o.type='square'; o.frequency.value=110;
+    g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.001,t+.5);
+    o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t+.55); },
+  sad: function(){ var t=AC.currentTime; note(392,t,.4,'triangle',.3); note(330,t+.22,.4,'triangle',.3); note(262,t+.44,.4,'triangle',.3); },
+  thunder: function(){ var t=AC.currentTime; noise(t,1.4,'lowpass',400,60,.8); flashScreen(); },
+  crack: function(){ var t=AC.currentTime; noise(t,.15,'highpass',1500,null,.5); },
+  tick: function(){ var t=AC.currentTime; note(1000,t,.06,'square',.12); },
+  spin: function(){ var t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(300,t); o.frequency.linearRampToValueAtTime(900,t+.4);
+    g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.001,t+.45);
+    o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t+.5); },
+  crunch: function(){ var t=AC.currentTime; noise(t,.12,'bandpass',800,300,.6);
+    setTimeout(function(){ if(AC) noise(AC.currentTime,.1,'bandpass',600,200,.5); },140); },
+  crowd: function(){ var t=AC.currentTime; noise(t,.7,'bandpass',500,900,.25); },
+  stamp: function(){ var t=AC.currentTime; noise(t,.08,'lowpass',300,null,.7); note(200,t,.2,'sine',.4); },
+  jingle: function(){ var t=AC.currentTime; note(784,t,.3,'triangle',.2); note(988,t+.08,.3,'triangle',.2); note(1175,t+.16,.3,'triangle',.2); note(1568,t+.24,.3,'triangle',.2); },
+  shimmer: function(){ var t=AC.currentTime; note(1046,t,.8,'sine',.12); note(1318,t+.06,.8,'sine',.12); note(1568,t+.12,.8,'sine',.12); note(2093,t+.18,.8,'sine',.12); },
+  fanfare: function(){ var t=AC.currentTime; note(523,t,.9,'triangle',.3); note(659,t+.15,.9,'triangle',.3); note(784,t+.3,.9,'triangle',.3); note(1046,t+.45,.9,'triangle',.3); note(1046,t+.6,1.4,'sine',.25); }
+};
+function flashScreen(){ var f=document.getElementById('flash'); f.style.opacity=.85; setTimeout(function(){ f.style.opacity=0; },130); }
+
+/* ================= PLAYER ENGINE ================= */
+var t=0, playing=false, lastTs=null, cueIdx=0;
+function $(id){ return document.getElementById(id); }
+var subLine=$('subLine'), chapBadge=$('chapBadge'), progFill=$('progFill'), timeEl=$('time'), playBtn=$('play');
+
+SCENES.forEach(function(s,i){
+  s.el=$(s.id);
+  var d=document.createElement('div'); d.className='ch';
+  d.style.right=(s.start/TOTAL*100)+'%'; d.style.width=((s.end-s.start)/TOTAL*100)+'%';
+  d.title=(i+1)+'. '+s.name;
+  d.addEventListener('click',function(e){ e.stopPropagation(); seek(s.start+50); if(!playing){ initAudio(); play(); } });
+  $('chapters').appendChild(d);
+});
+
+(function(){ var i, st;
+  for(i=0;i<70;i++){
+    st=document.createElement('i');
+    st.style.left=Math.random()*100+'%'; st.style.top=Math.random()*100+'%';
+    st.style.animationDelay=Math.random()*4+'s';
+    st.style.opacity=.2+Math.random()*.5;
+    $('stars').appendChild(st);
+  }
+})();
+var CONF_COLORS=['#ffd166','#ef476f','#06d6a0','#4cc9f0','#b388ff'];
+(function(){ var i, c;
+  for(i=0;i<50;i++){
+    c=document.createElement('i');
+    c.style.left=Math.random()*100+'%';
+    c.style.background=CONF_COLORS[i%CONF_COLORS.length];
+    c.style.animationDuration=(3+Math.random()*3)+'s';
+    c.style.animationDelay=Math.random()*4+'s';
+    c.style.opacity=0;
+    $('confetti').appendChild(c);
+  }
+})();
+(function(){ var row=$('appleRow7'), i, a;
+  for(i=0;i<7;i++){
+    a=document.createElement('div'); a.className='miniApple el'; a.setAttribute('data-t', 9000+i*600);
+    a.innerHTML='🍏<span>ترش؟!</span>'; a.style.animationDelay=(i*.3)+'s';
+    row.appendChild(a);
+  }
+})();
+
+function fmt(ms){ var s=Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function findScene(ms){ for(var i=0;i<SCENES.length;i++){ if(ms>=SCENES[i].start&&ms<SCENES[i].end) return SCENES[i]; } return SCENES[SCENES.length-1]; }
+function findSub(ms){ for(var i=0;i<SUBS.length;i++){ if(ms>=SUBS[i].t&&ms<SUBS[i].t+SUBS[i].d) return SUBS[i]; } return null; }
+
+function update(ms){
+  var sc=findScene(ms), i, s, active, st, on, j;
+  for(i=0;i<SCENES.length;i++){
+    s=SCENES[i]; active=(s===sc);
+    if(active && !s.el.classList.contains('active')){
+      s.el.classList.add('active');
+      chapBadge.textContent=(i+1)+'/'+SCENES.length+' • '+s.name;
+      chapBadge.classList.add('show');
+      clearTimeout(chapBadge._h); chapBadge._h=setTimeout(function(){ chapBadge.classList.remove('show'); },3500);
+    } else if(!active) s.el.classList.remove('active');
+    if(active){
+      st=ms-s.start;
+      var els=s.el.querySelectorAll('.el[data-t]');
+      for(j=0;j<els.length;j++){
+        on = st >= parseInt(els[j].getAttribute('data-t'),10);
+        els[j].classList.toggle('on', on);
+      }
+      if(s.id==='s3'){ $('apple3').classList.toggle('open', st>=6500); }
+      if(s.id==='s5'){ s.el.classList.toggle('cracked', st>=13500); }
+      if(s.id==='s10'){ on = st>=18000;
+        var conf=$('confetti').children, k;
+        for(k=0;k<conf.length;k++) conf[k].style.opacity = on ? (.4+Math.random()*.6) : 0;
+      }
+    }
+  }
+  var sub=findSub(ms);
+  if(sub){ if(subLine.textContent!==sub.x) subLine.textContent=sub.x; subLine.classList.add('show'); }
+  else subLine.classList.remove('show');
+  progFill.style.width=(ms/TOTAL*100)+'%';
+  timeEl.textContent=fmt(ms)+' / '+fmt(TOTAL);
+}
+function loop(ts){
+  if(lastTs===null) lastTs=ts;
+  var dt=Math.min(ts-lastTs,100); lastTs=ts;
+  if(playing){
+    t+=dt;
+    if(t>=TOTAL){ t=TOTAL-1; pause(); showEnd(); }
+    while(cueIdx<CUES.length && CUES[cueIdx].t<=t){
+      if(AC && !muted && SFX[CUES[cueIdx].f]) SFX[CUES[cueIdx].f]();
+      cueIdx++;
+    }
+    update(t);
+  }
+  requestAnimationFrame(loop);
+}
+function play(){
+  if(t>=TOTAL-10) t=0;
+  playing=true; playBtn.textContent='⏸'; $('poster').classList.add('hide'); $('endCard').classList.remove('show');
+  if(AC && AC.state==='suspended') AC.resume();
+}
+function pause(){ playing=false; playBtn.textContent='▶'; }
+function togglePlay(){ if(playing) pause(); else play(); }
+function seek(ms){
+  t=Math.max(0,Math.min(ms,TOTAL-1));
+  cueIdx=0; while(cueIdx<CUES.length && CUES[cueIdx].t<=t) cueIdx++;
+  lastTs=null; update(t);
+}
+function showEnd(){ $('endCard').classList.add('show'); }
+
+playBtn.addEventListener('click',function(){ initAudio(); togglePlay(); });
+$('poster').addEventListener('click',function(){ initAudio(); play(); });
+$('replayBtn').addEventListener('click',function(){ initAudio(); seek(0); play(); });
+$('progress').addEventListener('click',function(e){
+  var r=this.getBoundingClientRect();
+  seek((1-(e.clientX-r.left)/r.width)*TOTAL);
+});
+$('mute').addEventListener('click',function(){
+  muted=!muted; if(master) master.gain.value=muted?0:.9;
+  this.textContent=muted?'🔇':'🔊';
+});
+$('fs').addEventListener('click',function(){
+  var w=$('stageWrap');
+  if(!document.fullscreenElement){
+    if(w.requestFullscreen) w.requestFullscreen();
+    else if(w.webkitRequestFullscreen) w.webkitRequestFullscreen();
+  } else document.exitFullscreen();
+});
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'){ e.preventDefault(); initAudio(); togglePlay(); }
+  if(e.code==='ArrowRight') seek(t+5000);
+  if(e.code==='ArrowLeft') seek(t-5000);
+});
+
+update(0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
